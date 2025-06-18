@@ -57,13 +57,13 @@ def schedule_workflows(deal_id, data_agendamento_str):
             data_agendamento.date() - timedelta(days=1),
             datetime.min.time(),
             tzinfo=BRAZIL_TZ
-        ) + timedelta(hours=20)
+        ) + timedelta(hours=12)
 
         hora_8h_do_dia = datetime.combine(
             data_agendamento.date(),
             datetime.min.time(),
             tzinfo=BRAZIL_TZ
-        ) + timedelta(hours=8)
+        ) + timedelta(hours=11)
 
         app.logger.info(f"📅 Horário 20h do dia anterior: {hora_20h_dia_anterior}")
         app.logger.info(f"📅 Horário 8h do dia do agendamento: {hora_8h_do_dia}")
