@@ -1,22 +1,23 @@
 import os
 import requests
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from dotenv import load_dotenv
 from dateutil import parser
-from datetime import time
 import logging
 
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
-    from zoneinfo import ZoneInfo
+    from backports.zoneinfo import ZoneInfo  # Para Python <3.9
 
+# Carregar variáveis de ambiente
 load_dotenv()
 
 app = Flask(__name__)
-app.logger.setLevel(logging.INFO)  # <--- garante que logs INFO apareçam
+app.logger.setLevel(logging.INFO)
+
 scheduler = BackgroundScheduler()
 scheduler.start()
 
@@ -31,70 +32,65 @@ def get_deal_data(deal_id):
         app.logger.info(f"🔍 Buscando dados do negócio ID: {deal_id}")
         res = requests.get(f"{BITRIX_WEBHOOK_BASE}?id={deal_id}")
         res.raise_for_status()
-        result = res.json().get("result")
-        return result
+        return res.json().get("result")
     except Exception as e:
         app.logger.error(f"❌ Erro ao buscar negócio: {e}")
         return None
 
 
 def schedule_workflows(deal_id, data_agendamento_str):
-    """Agenda os dois workflows nos horários corretos"""
+    """Agenda os workflows para 20h do dia anterior e 8h do próprio dia"""
     try:
-        app.logger.info(f"📥 Data agendamento bruta recebida: {data_agendamento_str}")
+        app.logger.info(f"📥 Data agendamento recebida: {data_agendamento_str}")
 
         try:
             data_agendamento = parser.parse(data_agendamento_str)
             data_agendamento = data_agendamento.replace(tzinfo=None).replace(tzinfo=BRAZIL_TZ)
-
-            app.logger.info(f"📆 Data agendamento final (sem conversão): {data_agendamento}")
         except Exception as e:
             app.logger.error(f"❌ Erro ao converter data: {e}")
             return
 
-        app.logger.info(f"📆 Data de agendamento formatada: {data_agendamento.strftime('%d/%m/%Y %H:%M:%S')}")
-        app.logger.info(f"🕐 Data agendamento convertida: {data_agendamento}")
-
-        # Testando horários customizados: 12h do dia anterior e 11h do próprio dia
-        hora_12h_dia_anterior = datetime.combine(
+        hora_20h_dia_anterior = datetime.combine(
             data_agendamento.date() - timedelta(days=1),
-            datetime.min.time(),
+            time(hour=20, minute=0),
             tzinfo=BRAZIL_TZ
-        ) + timedelta(hours=11)
-
-        hora_11h_do_dia = datetime.combine(
+        )
+        
+        hora_8h_do_dia = datetime.combine(
             data_agendamento.date(),
-            time(hour=12, minute=20),
+            time(hour=8, minute=0),
             tzinfo=BRAZIL_TZ
         )
 
-        app.logger.info(f"📅 Horário 12h do dia anterior: {hora_12h_dia_anterior}")
-        app.logger.info(f"📅 Horário 11h do dia do agendamento: {hora_11h_do_dia}")
+        app.logger.info(f"📅 Horário 20h do dia anterior: {hora_20h_dia_anterior}")
+        app.logger.info(f"📅 Horário 8h do dia do agendamento: {hora_8h_do_dia}")
 
         agora = datetime.now(BRAZIL_TZ)
         app.logger.info(f"⏳ Agora: {agora}")
 
-        if hora_12h_dia_anterior < agora:
-            app.logger.warning("⚠️ Aviso: horário 12h do dia anterior já passou, não será agendado.")
+        # Agendamento para 20h do dia anterior
+        if hora_20h_dia_anterior < agora:
+            app.logger.warning("⚠️ Horário 20h do dia anterior já passou.")
         else:
-            app.logger.info("📌 Agendando workflow das 12h do dia anterior...")
+            app.logger.info("📌 Agendando workflow para 20h do dia anterior...")
             scheduler.add_job(
-                lambda: requests.post(f"{URL_VPS}/webhook/workflow_8danoite?deal_id={deal_id}"),
+                lambda: requests.post(f"{URL_VPS}/webhook/workflow_8danoite", json={"deal_id": deal_id}),
                 trigger='date',
-                run_date=hora_12h_dia_anterior,
-                id=f"workflow_12h_{deal_id}",
+                run_date=hora_20h_dia_anterior,
+                id=f"workflow_20h_{deal_id}",
                 replace_existing=True
             )
 
-        if hora_11h_do_dia < agora:
-            app.logger.warning("⚠️ Aviso: horário 11h do dia já passou, não será agendado.")
+        # Agendamento para 8h do dia
+        if hora_8h_do_dia < agora:
+            app.logger.warning("⚠️ Horário 8h do dia já passou.")
         else:
-            app.logger.info("📌 Agendando workflow das 11h do dia do agendamento...")
+            app.logger.info("📌 Agendando workflow para 8h do dia do agendamento...")
             scheduler.add_job(
-                lambda: requests.post(f"{URL_VPS}/webhook/workflow_8damanha?deal_id={deal_id}"),
+                lambda: requests.post(f"{URL_VPS}/webhook/workflow_8damanha", json={"deal_id": deal_id}),
                 trigger='date',
-                run_date=hora_11h_do_dia,
-                id=f"workflow_11h_{deal_id}",
+                run_date=hora_8h_do_dia,
+                id=f"workflow_8h_{deal_id}",
                 replace_existing=True
             )
 
@@ -102,10 +98,18 @@ def schedule_workflows(deal_id, data_agendamento_str):
         app.logger.error(f"❌ Erro ao agendar workflows: {e}")
 
 
-@app.route("/agendar_workflows/<int:deal_id>", methods=["GET"])
-def agendar(deal_id):
-    """Endpoint para agendar os workflows com base no negócio"""
+@app.route("/agendar_workflows", methods=["POST"])
+def agendar():
+    """Endpoint POST que agenda workflows com base no deal_id enviado via JSON"""
+    data = request.get_json()
+    deal_id = data.get("deal_id")
+
+    if not deal_id:
+        app.logger.warning("🚫 Parâmetro 'deal_id' ausente no corpo da requisição.")
+        return jsonify({"error": "Parâmetro 'deal_id' é obrigatório"}), 400
+
     app.logger.info(f"📲 Requisição recebida para agendar workflows para o negócio ID: {deal_id}")
+
     deal = get_deal_data(deal_id)
     if not deal:
         app.logger.warning(f"🚫 Negócio não encontrado para ID {deal_id}")
@@ -113,8 +117,9 @@ def agendar(deal_id):
 
     data_agendamento = deal.get("UF_CRM_1698761052502")
     app.logger.info(f"🧾 Campo UF_CRM_1698761052502 (data de agendamento): {data_agendamento}")
+
     if not data_agendamento:
-        app.logger.warning(f"🚫 Campo de agendamento não encontrado no negócio")
+        app.logger.warning("🚫 Campo de agendamento não encontrado no negócio")
         return jsonify({"error": "Campo de agendamento não encontrado"}), 400
 
     schedule_workflows(deal_id, data_agendamento)
