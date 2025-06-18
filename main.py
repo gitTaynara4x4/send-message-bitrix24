@@ -52,46 +52,46 @@ def schedule_workflows(deal_id, data_agendamento_str):
         app.logger.info(f"📆 Data de agendamento formatada: {data_agendamento.strftime('%d/%m/%Y %H:%M:%S')}")
         app.logger.info(f"🕐 Data agendamento convertida: {data_agendamento}")
 
-        # Define os horários-alvo
-        hora_20h_dia_anterior = datetime.combine(
+        # Testando horários customizados: 12h do dia anterior e 11h do próprio dia
+        hora_12h_dia_anterior = datetime.combine(
             data_agendamento.date() - timedelta(days=1),
             datetime.min.time(),
             tzinfo=BRAZIL_TZ
         ) + timedelta(hours=12)
 
-        hora_8h_do_dia = datetime.combine(
+        hora_11h_do_dia = datetime.combine(
             data_agendamento.date(),
             datetime.min.time(),
             tzinfo=BRAZIL_TZ
         ) + timedelta(hours=11)
 
-        app.logger.info(f"📅 Horário 20h do dia anterior: {hora_20h_dia_anterior}")
-        app.logger.info(f"📅 Horário 8h do dia do agendamento: {hora_8h_do_dia}")
+        app.logger.info(f"📅 Horário 12h do dia anterior: {hora_12h_dia_anterior}")
+        app.logger.info(f"📅 Horário 11h do dia do agendamento: {hora_11h_do_dia}")
 
         agora = datetime.now(BRAZIL_TZ)
         app.logger.info(f"⏳ Agora: {agora}")
 
-        if hora_20h_dia_anterior < agora:
-            app.logger.warning("⚠️ Aviso: horário 20h do dia anterior já passou, não será agendado.")
+        if hora_12h_dia_anterior < agora:
+            app.logger.warning("⚠️ Aviso: horário 12h do dia anterior já passou, não será agendado.")
         else:
-            app.logger.info("📌 Agendando workflow das 20h...")
+            app.logger.info("📌 Agendando workflow das 12h do dia anterior...")
             scheduler.add_job(
                 lambda: requests.get(f"{URL_VPS}/webhook/workflow_8danoite?deal_id={deal_id}"),
                 trigger='date',
-                run_date=hora_20h_dia_anterior,
-                id=f"workflow_20h_{deal_id}",
+                run_date=hora_12h_dia_anterior,
+                id=f"workflow_12h_{deal_id}",
                 replace_existing=True
             )
 
-        if hora_8h_do_dia < agora:
-            app.logger.warning("⚠️ Aviso: horário 8h do dia já passou, não será agendado.")
+        if hora_11h_do_dia < agora:
+            app.logger.warning("⚠️ Aviso: horário 11h do dia já passou, não será agendado.")
         else:
-            app.logger.info("📌 Agendando workflow das 8h...")
+            app.logger.info("📌 Agendando workflow das 11h do dia do agendamento...")
             scheduler.add_job(
                 lambda: requests.get(f"{URL_VPS}/webhook/workflow_8damanha?deal_id={deal_id}"),
                 trigger='date',
-                run_date=hora_8h_do_dia,
-                id=f"workflow_8h_{deal_id}",
+                run_date=hora_11h_do_dia,
+                id=f"workflow_11h_{deal_id}",
                 replace_existing=True
             )
 
