@@ -79,7 +79,7 @@ def schedule_workflows(deal_id, data_agendamento_str):
         else:
             app.logger.info("📌 Agendando workflow das 12h do dia anterior...")
             scheduler.add_job(
-                lambda: requests.get(f"{URL_VPS}/webhook/workflow_8danoite?deal_id={deal_id}"),
+                lambda: requests.post(f"{URL_VPS}/webhook/workflow_8danoite?deal_id={deal_id}"),
                 trigger='date',
                 run_date=hora_12h_dia_anterior,
                 id=f"workflow_12h_{deal_id}",
@@ -91,7 +91,7 @@ def schedule_workflows(deal_id, data_agendamento_str):
         else:
             app.logger.info("📌 Agendando workflow das 11h do dia do agendamento...")
             scheduler.add_job(
-                lambda: requests.get(f"{URL_VPS}/webhook/workflow_8damanha?deal_id={deal_id}"),
+                lambda: requests.post(f"{URL_VPS}/webhook/workflow_8damanha?deal_id={deal_id}"),
                 trigger='date',
                 run_date=hora_11h_do_dia,
                 id=f"workflow_11h_{deal_id}",
