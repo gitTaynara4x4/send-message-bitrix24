@@ -29,7 +29,6 @@ def get_deal_data(deal_id):
         res = requests.get(f"{BITRIX_WEBHOOK_BASE}?id={deal_id}")
         res.raise_for_status()
         result = res.json().get("result")
-        print(f"✅ Dados do negócio recebidos: {result}")
         return result
     except Exception as e:
         print(f"❌ Erro ao buscar negócio: {e}")
