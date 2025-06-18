@@ -40,6 +40,7 @@ def schedule_workflows(deal_id, data_agendamento_str):
     try:
         app.logger.info(f"📥 Data agendamento bruta recebida: {data_agendamento_str}")
         data_agendamento = parser.parse(data_agendamento_str).astimezone(BRAZIL_TZ)
+        app.logger.info(f"📆 Data de agendamento formatada: {data_agendamento.strftime('%d/%m/%Y %H:%M:%S')}")
         app.logger.info(f"🕐 Data agendamento convertida: {data_agendamento}")
 
         # Define os horários-alvo
