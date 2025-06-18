@@ -21,9 +21,7 @@ BITRIX_WEBHOOK_BASE = "https://marketingsolucoes.bitrix24.com.br/rest/5332/8zyo7
 URL_VPS = os.getenv("URL_VPS")  
 BRAZIL_TZ = ZoneInfo("America/Sao_Paulo")
 
-@app.before_first_request
-def init_log():
-    app.logger.info("🚀 Servidor iniciado na porta 1444...")
+
 
 def get_deal_data(deal_id):
     """Busca dados do negócio no Bitrix"""
@@ -94,4 +92,5 @@ def agendar(deal_id):
     return jsonify({"message": "Workflows agendados com sucesso"}), 200
 
 if __name__ == "__main__":
+    app.logger.info("🚀 Servidor iniciando na porta 1444...")
     app.run(host="0.0.0.0", port=1444)
