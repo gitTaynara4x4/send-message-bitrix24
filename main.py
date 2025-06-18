@@ -59,7 +59,7 @@ def schedule_workflows(deal_id, data_agendamento_str):
             data_agendamento.date() - timedelta(days=1),
             datetime.min.time(),
             tzinfo=BRAZIL_TZ
-        ) + timedelta(hours=12)
+        ) + timedelta(hours=13)
 
         hora_11h_do_dia = datetime.combine(
             data_agendamento.date(),
