@@ -44,6 +44,8 @@ def schedule_workflows(deal_id, data_agendamento_str):
 
         try:
             data_agendamento = parser.parse(data_agendamento_str)
+            data_agendamento = data_agendamento.replace(tzinfo=None).replace(tzinfo=BRAZIL_TZ)
+
             app.logger.info(f"📆 Data agendamento final (sem conversão): {data_agendamento}")
         except Exception as e:
             app.logger.error(f"❌ Erro ao converter data: {e}")
