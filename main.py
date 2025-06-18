@@ -18,8 +18,10 @@ app = Flask(__name__)
 scheduler = BackgroundScheduler()
 scheduler.start()
 
+print("⚙️ Scheduler iniciado!")
+
 BITRIX_WEBHOOK_BASE = "https://marketingsolucoes.bitrix24.com.br/rest/5332/8zyo7yj1ry4k59b5/crm.deal.get"
-URL_VPS = os.getenv("URL_VPS")  
+URL_VPS = os.getenv("URL_VPS")
 BRAZIL_TZ = ZoneInfo("America/Sao_Paulo")
 
 def get_deal_data(deal_id):
@@ -29,6 +31,7 @@ def get_deal_data(deal_id):
         res = requests.get(f"{BITRIX_WEBHOOK_BASE}?id={deal_id}")
         res.raise_for_status()
         result = res.json().get("result")
+        print(f"✅ Dados do negócio recebidos: {result}")
         return result
     except Exception as e:
         print(f"❌ Erro ao buscar negócio: {e}")
@@ -41,7 +44,6 @@ def schedule_workflows(deal_id, data_agendamento_str):
         data_agendamento = parser.parse(data_agendamento_str).astimezone(BRAZIL_TZ)
         print(f"🕐 Data agendamento convertida: {data_agendamento}")
 
-        # Define os horários-alvo
         hora_20h_dia_anterior = datetime.combine(data_agendamento.date() - timedelta(days=1),
                                                  datetime.min.time(), tzinfo=BRAZIL_TZ) + timedelta(hours=20)
         hora_8h_do_dia = datetime.combine(data_agendamento.date(),
@@ -88,6 +90,7 @@ def agendar(deal_id):
         return jsonify({"error": "Campo de agendamento não encontrado"}), 400
 
     schedule_workflows(deal_id, data_agendamento)
+    print(f"✅ Agendamento concluído para o negócio ID: {deal_id}")
     return jsonify({"message": "Workflows agendados com sucesso"}), 200
 
 if __name__ == "__main__":
