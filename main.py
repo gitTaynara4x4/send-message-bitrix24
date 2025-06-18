@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from dateutil import parser
+from datetime import time
 import logging
 
 try:
@@ -63,9 +64,9 @@ def schedule_workflows(deal_id, data_agendamento_str):
 
         hora_11h_do_dia = datetime.combine(
             data_agendamento.date(),
-            datetime.min.time(),
+            time(hour=13, minute=20),
             tzinfo=BRAZIL_TZ
-        ) + timedelta(hours=12)
+        )
 
         app.logger.info(f"📅 Horário 12h do dia anterior: {hora_12h_dia_anterior}")
         app.logger.info(f"📅 Horário 11h do dia do agendamento: {hora_11h_do_dia}")
