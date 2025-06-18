@@ -39,7 +39,12 @@ def schedule_workflows(deal_id, data_agendamento_str):
     """Agenda os dois workflows nos horários corretos"""
     try:
         app.logger.info(f"📥 Data agendamento bruta recebida: {data_agendamento_str}")
-        data_agendamento = parser.parse(data_agendamento_str).astimezone(BRAZIL_TZ)
+        try:
+            data_agendamento = parser.parse(data_agendamento_str).astimezone(BRAZIL_TZ)
+        except Exception as e:
+            app.logger.error(f"❌ Erro ao converter data: {e}")
+            return
+
         app.logger.info(f"📆 Data de agendamento formatada: {data_agendamento.strftime('%d/%m/%Y %H:%M:%S')}")
         app.logger.info(f"🕐 Data agendamento convertida: {data_agendamento}")
 
